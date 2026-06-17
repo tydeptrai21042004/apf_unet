@@ -29,6 +29,7 @@ COMMON_DATASET_DIR_ALIASES: Dict[str, Tuple[str, ...]] = {
     "etis": ("ETIS-LaribPolypDB", "ETIS", "etis-larib", "etis_larib", "etis-laribpolypdb"),
     "cvc_colondb": ("CVC-ColonDB", "cvc-colondb", "ColonDB", "colondb"),
     "cvc_300": ("CVC-300", "cvc-300", "CVC300", "cvc300", "EndoScene", "CVC-T"),
+    "isbi2012": ("ISBI2012", "ISBI-2012", "ISBI_2012", "ISBI-2012-challenge"),
     "isic2018": (
         "ISIC2018",
         "ISIC-2018",

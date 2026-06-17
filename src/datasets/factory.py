@@ -13,6 +13,7 @@ SUPPORTED_BINARY_SEG_DATASETS = {
     "etis",
     "cvc_colondb",
     "cvc_300",
+    "isbi2012",
     "isic2018",
     "kvasir_instrument",
     "hyper_kvasir_seg",

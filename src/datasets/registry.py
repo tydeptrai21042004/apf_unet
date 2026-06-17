@@ -56,6 +56,20 @@ DATASET_SPECS = {
         description="CVC-300 polyp segmentation dataset.",
     ),
 
+    "isbi2012": DatasetSpec(
+        name="isbi2012",
+        aliases=("isbi2012", "isbi-2012", "isbi_2012", "isbi2012_challenge", "isbi-2012-challenge"),
+        canonical_dir="ISBI2012",
+        default_download_url="https://downloads.imagej.net/ISBI-2012-challenge.zip",
+        official_source_url="https://imagej.net/events/isbi-2012-segmentation-challenge",
+        description=(
+            "ISBI 2012 neuronal-structure EM segmentation dataset. The labeled "
+            "training volume contains 30 paired 512x512 slices; the public challenge "
+            "test volume has no public ground-truth labels and is not used by the "
+            "standard supervised benchmark pipeline."
+        ),
+    ),
+
     "isic2018": DatasetSpec(
         name="isic2018",
         aliases=("isic2018", "isic-2018", "isic", "isic_task1", "isic2018_task1", "isic_2018_task_1"),

@@ -32,10 +32,19 @@ def _collect_ids(image_dir: Path) -> List[str]:
     return sorted(ids)
 
 
-def _split_ids(ids: Sequence[str], train_ratio: float, val_ratio: float, seed: int) -> Tuple[List[str], List[str], List[str]]:
-    ids = list(ids)
-    rng = random.Random(seed)
-    rng.shuffle(ids)
+def _split_ids(
+    ids: Sequence[str],
+    train_ratio: float,
+    val_ratio: float,
+    seed: int,
+    strategy: str = "random",
+) -> Tuple[List[str], List[str], List[str]]:
+    ids = sorted(ids)
+    if strategy == "random":
+        rng = random.Random(seed)
+        rng.shuffle(ids)
+    elif strategy != "contiguous":
+        raise ValueError(f"Unsupported split strategy: {strategy}")
     n = len(ids)
     n_train = int(round(n * train_ratio))
     n_val = int(round(n * val_ratio))
@@ -63,6 +72,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--train-ratio", type=float, default=0.8)
     parser.add_argument("--val-ratio", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--strategy",
+        choices=("random", "contiguous"),
+        default="random",
+        help=(
+            "random shuffles sample IDs deterministically; contiguous preserves sorted "
+            "slice order and is recommended for adjacent-volume datasets such as ISBI 2012."
+        ),
+    )
     parser.add_argument("--output-dir", type=str, default=None, help="Defaults to <data-root>/splits/<dataset> so multiple datasets can coexist.")
     return parser.parse_args()
 
@@ -79,7 +97,13 @@ def main() -> None:
     if len(ids) < 3:
         raise RuntimeError(f"Need at least 3 samples to create train/val/test splits, found {len(ids)}")
 
-    train_ids, val_ids, test_ids = _split_ids(ids, args.train_ratio, args.val_ratio, args.seed)
+    train_ids, val_ids, test_ids = _split_ids(
+        ids,
+        args.train_ratio,
+        args.val_ratio,
+        args.seed,
+        strategy=args.strategy,
+    )
     output_dir = Path(args.output_dir) if args.output_dir else data_root / "splits" / dataset_name
     _write_list(train_ids, output_dir / "train.txt")
     _write_list(val_ids, output_dir / "val.txt")
@@ -87,6 +111,7 @@ def main() -> None:
 
     print(f"Saved splits to: {output_dir}")
     print(f"dataset={dataset_name}")
+    print(f"strategy={args.strategy}")
     print(f"train={len(train_ids)} val={len(val_ids)} test={len(test_ids)} total={len(ids)}")
 
 

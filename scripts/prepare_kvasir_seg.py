@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare supported polyp datasets for the HF-U-Net benchmark.
+"""Prepare supported binary-segmentation datasets for the APF-U-Net benchmark.
 
 Supported input modes:
 1) Existing extracted dataset folder with images/ and masks/
@@ -38,7 +38,13 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.datasets import get_dataset_spec, normalize_dataset_name
-from src.datasets.kvasir_seg_dataset import _dir_name_variants, _resolve_image_mask_dirs, canonical_sample_id, looks_like_mask_stem
+from src.datasets.kvasir_seg_dataset import (
+    KvasirPaths,
+    _dir_name_variants,
+    _resolve_image_mask_dirs,
+    canonical_sample_id,
+    looks_like_mask_stem,
+)
 
 VALID_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".gif"}
 
@@ -159,6 +165,62 @@ def _write_metadata(rows: List[dict], path: Path) -> None:
 
 
 
+
+def _find_isbi2012_stacks(root: Path) -> Optional[Tuple[Path, Path]]:
+    """Locate the labeled ISBI 2012 training image and mask stacks."""
+    image_names = {"train-volume.tif", "train-volume.tiff", "train_volume.tif", "train_volume.tiff"}
+    mask_names = {"train-labels.tif", "train-labels.tiff", "train_labels.tif", "train_labels.tiff"}
+    image_path: Optional[Path] = None
+    mask_path: Optional[Path] = None
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        name = path.name.lower()
+        if name in image_names and image_path is None:
+            image_path = path
+        elif name in mask_names and mask_path is None:
+            mask_path = path
+    if image_path is not None and mask_path is not None:
+        return image_path, mask_path
+    return None
+
+
+def _expand_isbi2012_stacks(
+    image_stack_path: Path,
+    mask_stack_path: Path,
+    output_root: Path,
+) -> KvasirPaths:
+    """Expand paired multipage TIFF stacks into deterministic PNG slice pairs."""
+    image_dir = output_root / "images"
+    mask_dir = output_root / "masks"
+    if output_root.exists():
+        shutil.rmtree(output_root)
+    image_dir.mkdir(parents=True, exist_ok=True)
+    mask_dir.mkdir(parents=True, exist_ok=True)
+
+    with Image.open(image_stack_path) as image_stack, Image.open(mask_stack_path) as mask_stack:
+        image_frames = int(getattr(image_stack, "n_frames", 1))
+        mask_frames = int(getattr(mask_stack, "n_frames", 1))
+        if image_frames != mask_frames:
+            raise RuntimeError(
+                "ISBI 2012 image/mask stack length mismatch: "
+                f"images={image_frames}, masks={mask_frames}"
+            )
+        if image_frames <= 0:
+            raise RuntimeError("ISBI 2012 stacks contain no slices.")
+
+        for index in range(image_frames):
+            image_stack.seek(index)
+            mask_stack.seek(index)
+            image = image_stack.convert("L")
+            mask = mask_stack.convert("L").point(lambda value: 255 if value > 127 else 0)
+            sample_id = f"slice_{index:03d}"
+            image.save(image_dir / f"{sample_id}.png")
+            mask.save(mask_dir / f"{sample_id}.png")
+
+    return KvasirPaths(image_dir=image_dir, mask_dir=mask_dir)
+
+
 def _extract_zip(zip_path: Path, extract_dir: Path, dataset_name: str) -> Path:
     if not zip_path.exists():
         raise FileNotFoundError(f"Zip archive not found: {zip_path}")
@@ -166,6 +228,9 @@ def _extract_zip(zip_path: Path, extract_dir: Path, dataset_name: str) -> Path:
     with zipfile.ZipFile(zip_path, "r") as zf:
         zf.extractall(extract_dir)
     dataset_root = _find_dataset_root(extract_dir, dataset_name)
+    if dataset_root is None and normalize_dataset_name(dataset_name) == "isbi2012":
+        if _find_isbi2012_stacks(extract_dir) is not None:
+            return extract_dir
     if dataset_root is None:
         spec = get_dataset_spec(dataset_name)
         raise FileNotFoundError(
@@ -350,14 +415,21 @@ def main() -> None:
     dataset_root: Optional[Path] = None
 
     if args.source_dir:
-        dataset_root = _find_dataset_root(Path(args.source_dir), dataset_name)
+        source_root = Path(args.source_dir)
+        dataset_root = _find_dataset_root(source_root, dataset_name)
+        if dataset_root is None and dataset_name == "isbi2012":
+            if _find_isbi2012_stacks(source_root) is not None:
+                dataset_root = source_root
         if dataset_root is None:
-            raise FileNotFoundError(f"Could not locate images/ and masks/ under source-dir: {args.source_dir}")
+            raise FileNotFoundError(f"Could not locate compatible dataset data under source-dir: {args.source_dir}")
     elif args.zip_path:
         dataset_root = _extract_zip(Path(args.zip_path), data_root / "_tmp_extract", dataset_name)
     else:
         explicit_download_url = args.download_url
         existing_root = _find_dataset_root(data_root, dataset_name)
+        if existing_root is None and dataset_name == "isbi2012":
+            if _find_isbi2012_stacks(data_root) is not None:
+                existing_root = data_root
         allow_insecure = bool(
             args.allow_insecure_download
             or os.environ.get("ALLOW_INSECURE_DOWNLOAD", "").strip() in {"1", "true", "TRUE", "yes", "YES"}
@@ -392,9 +464,21 @@ def main() -> None:
                 "Use --source-dir, --zip-path, or --download-url."
             )
 
-    resolved_dirs = _resolve_image_mask_dirs(dataset_root)
+    if dataset_name == "isbi2012":
+        stacks = _find_isbi2012_stacks(dataset_root)
+        if stacks is not None:
+            resolved_dirs = _expand_isbi2012_stacks(
+                stacks[0],
+                stacks[1],
+                data_root / "_tmp_isbi2012_slices",
+            )
+        else:
+            resolved_dirs = _resolve_image_mask_dirs(dataset_root)
+    else:
+        resolved_dirs = _resolve_image_mask_dirs(dataset_root)
+
     if resolved_dirs is None:
-        raise FileNotFoundError(f"Could not resolve compatible image/mask folders inside dataset root: {dataset_root}")
+        raise FileNotFoundError(f"Could not resolve compatible image/mask data inside dataset root: {dataset_root}")
     image_dir = resolved_dirs.image_dir
     mask_dir = resolved_dirs.mask_dir
     pairs = _collect_pairs(image_dir, mask_dir)
