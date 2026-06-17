@@ -58,3 +58,7 @@ python scripts/eval_one.py --model proposal_apf_unet --config configs/proposal_a
 ```bash
 pytest -q
 ```
+
+## ISBI 2012 lightweight EM dataset
+
+The repository additionally supports the 30-slice labeled ISBI 2012 EM training volume without removing ISIC 2018. See [`docs/ISBI2012_GUIDE.md`](docs/ISBI2012_GUIDE.md) for preparation, contiguous splitting, and three-seed benchmark commands.
