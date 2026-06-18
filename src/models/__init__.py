@@ -14,14 +14,27 @@ from .baselines.resunetpp import ResUNetPlusPlus, ResUNetPPAttentionGate, ResUNe
 from .baselines.unet import UNet
 from .baselines.unetpp import UNetPlusPlus
 
-# The only proposed method family.
-from .proposal.apf_unet import (
-    AmplitudePhaseFourierBottleneck,
-    APFUNet,
-    APFUNetAtEncoder1,
-    APFAmplitudeOnlyUNet,
-    APFPhaseOnlyUNet,
-    PlainFourierUNet,
+# The proposed Fourier U-Net family.
+from .proposal.fourier_unet import (
+    BoundedFourierUNet,
+    FourierAmplitudeOnlyUNet,
+    FourierNoChannelMixUNet,
+    FourierNoResidualUNet,
+    FourierPhaseOnlyUNet,
+    FourierSpectralBottleneck,
+    FourierUNet,
+    FourierUNetAtEncoder1,
+)
+
+from .proposal.urf_unet import (
+    AdaptiveRadialFourierBottleneck,
+    UncertaintyRoutedLocalFourierRefiner,
+    URFDynamicGlobalOnly,
+    URFNoBoundarySupervision,
+    URFNoCoarseSupervision,
+    URFNoDynamicGlobal,
+    URFNoUncertainty,
+    URFUNet,
 )
 
 __all__ = [
@@ -31,6 +44,16 @@ __all__ = [
     "ACSNet", "ACSNetLite", "HarDNetMSEG", "HarDNetMSEGLite",
     "HSNet", "HSNetLite", "PolypPVT", "PolypPVTLite", "CaraNet",
     "CaraNetLite", "CFANet", "CFANetLite", "CSCAUNet", "CSCAUNetLite",
-    "AmplitudePhaseFourierBottleneck", "APFUNet", "APFUNetAtEncoder1",
-    "APFAmplitudeOnlyUNet", "APFPhaseOnlyUNet", "PlainFourierUNet",
+    "FourierSpectralBottleneck", "FourierUNet", "BoundedFourierUNet",
+    "FourierAmplitudeOnlyUNet", "FourierPhaseOnlyUNet",
+    "FourierNoChannelMixUNet", "FourierNoResidualUNet",
+    "FourierUNetAtEncoder1",
+    "AdaptiveRadialFourierBottleneck",
+    "UncertaintyRoutedLocalFourierRefiner",
+    "URFUNet",
+    "URFDynamicGlobalOnly",
+    "URFNoUncertainty",
+    "URFNoDynamicGlobal",
+    "URFNoCoarseSupervision",
+    "URFNoBoundarySupervision",
 ]
