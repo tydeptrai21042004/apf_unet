@@ -66,7 +66,7 @@ def _load_cfg(config_dir: Path, name: str):
 def _fast_test_cfg(model_name: str, cfg: dict):
     cfg = dict(cfg)
     model_cfg = dict(cfg["model"])
-    if model_name in {"attention_unet", "proposal_apf_unet", "proposal_apf_unet"}:
+    if model_name in {"attention_unet", "proposal_fourier_unet", "proposal_fourier_unet"}:
         model_cfg["channels"] = [2, 4, 8, 16, 32]
     if model_name == "csca_unet":
         model_cfg["channels"] = [2, 4, 8, 16, 32, 64]

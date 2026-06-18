@@ -19,7 +19,7 @@ MODELS = [
     'caranet',
     'cfanet',
     'hsnet',
-    'proposal_apf_unet',
+    'proposal_fourier_unet',
 ]
 
 SHARED_KEYS = {
@@ -79,13 +79,13 @@ def main() -> None:
             if len(unique_values(values)) > 1:
                 report['soft_mismatches'][f'{section}.{key}'] = values
 
-    proposal = configs['proposal_apf_unet']
+    proposal = configs['proposal_fourier_unet']
     unet = configs['unet']
     if proposal.get('train', {}).get('loss') != unet.get('train', {}).get('loss'):
-        report['warnings'].append('APF-U-Net and U-Net use different losses; backbone-matched comparison would be cleaner with the same loss.')
+        report['warnings'].append('Fourier U-Net and U-Net use different losses; backbone-matched comparison would be cleaner with the same loss.')
     if proposal.get('data', {}).get('batch_size') != unet.get('data', {}).get('batch_size'):
-        report['warnings'].append('APF-U-Net and U-Net use different batch sizes; consider matching effective batch size or using gradient accumulation.')
-    report['warnings'].append('Architectural fairness still needs manual review: APF-U-Net adds a bounded amplitude-phase Fourier residual block beyond the plain U-Net reference.')
+        report['warnings'].append('Fourier U-Net and U-Net use different batch sizes; consider matching effective batch size or using gradient accumulation.')
+    report['warnings'].append('Architectural fairness still needs manual review: Fourier U-Net adds a learnable Fourier spectral residual block beyond the plain U-Net reference.')
     report['warnings'].append("Baseline configs are harmonized across models, but paper-official_faithful reproduction still depends on matching each paper's loss, pretraining, and evaluation protocol.")
 
     print(json.dumps(report, indent=2))

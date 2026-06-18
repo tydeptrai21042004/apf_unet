@@ -1,64 +1,144 @@
-# APF-U-Net
+# Fourier U-Net and URF-U-Net
 
-This repository contains baseline segmentation models and one proposed method: `proposal_apf_unet` (Amplitude-Phase Fourier U-Net). Older HF, HC, CHD, and WGHC proposal families were removed to keep the code, configurations, tests, and paper experiments consistent.
+This repository contains medical-image segmentation baselines and two spectral
+U-Net models:
 
-## Baseline paper-alignment audit
+- `proposal_fourier_unet`: **Plain Fourier U-Net**, used as the controlled
+  spectral baseline;
+- `proposal_urf_unet`: **URF-U-Net: Uncertainty-Routed Local--Global Fourier
+  U-Net**, the new proposed model.
 
-The repository includes a source-by-source architecture audit in [`docs/BASELINE_AUDIT.md`](docs/BASELINE_AUDIT.md) and machine-readable official-source contracts in [`configs/baseline_sources.yaml`](configs/baseline_sources.yaml). The `official_faithful` configurations enforce paper-aligned backbones and major module/output contracts; `paper_fair` configurations remain controlled benchmark adaptations.
+URF-U-Net combines image-conditioned radial global filtering at the deepest
+encoder feature with uncertainty-routed local Fourier refinement in the decoder.
 
-Run the complete verification suite with:
+## Proposed method
 
-```bash
-pytest -q
+The Fourier block performs the following operations:
+
+1. a channel projection into a hidden feature space;
+2. an orthonormal 2-D real FFT;
+3. learnable frequency-dependent amplitude gain and phase shift;
+4. optional cross-channel spectral mixing;
+5. an inverse real FFT;
+6. a residual correction added to the original bottleneck feature.
+
+The amplitude response uses a positive exponential parameterization. The
+spectral channel mixer is initialized as the identity, and the residual output
+projection is initialized to zero. Therefore, the full residual block starts as
+an exact identity map.
+
+## Canonical model key
+
+```text
+proposal_fourier_unet
 ```
 
+Older keys such as `proposal_apf_unet` and `fourier_unet_plain` are accepted as
+backward-compatible aliases, but all new experiments and result tables should
+use `proposal_fourier_unet` and the display name **Fourier U-Net**.
 
-## Main proposal
+## Controlled Fourier ablations
 
-`proposal_apf_unet` applies a bounded, no-gate amplitude-and-phase Fourier residual correction to the deepest encoder feature. The APF output projection is zero-initialized, so the block starts as an exact identity mapping.
+The ablation suite intentionally excludes ordinary U-Net because U-Net belongs
+in the main baseline comparison. The seven controlled Fourier variants are:
 
-## Controlled APF ablations
+- `proposal_fourier_unet`: full Fourier U-Net;
+- `fourier_unet_bounded`: conservative response bounds;
+- `fourier_unet_amplitude_only`: no learned phase shift;
+- `fourier_unet_phase_only`: no learned amplitude gain;
+- `fourier_unet_no_channel_mix`: no cross-channel spectral mixer;
+- `fourier_unet_no_residual`: direct feature replacement;
+- `fourier_unet_at_encoder1`: Fourier block at encoder stage 1.
 
-The directory `configs/ablation/` contains only:
+Every ablation configuration uses the same optimizer, learning rate, image size,
+batch size, augmentation, loss, evaluation threshold, and training budget.
 
-- `unet`
-- `proposal_apf_unet`
-- `apf_amplitude_only`
-- `apf_phase_only`
-- `fourier_unet_plain`
-- `proposal_apf_unet_at_encoder1`
-
-Run the suite with:
-
-```bash
-python scripts/run_apf_ablation.py --dataset kvasir_seg --data-root data --device auto --seed 42
-```
-
-## Prepare data
+Run one training seed with:
 
 ```bash
-python scripts/prepare_dataset.py --dataset kvasir_seg --data-root data --image-size 352
-python scripts/make_splits.py --dataset kvasir_seg --data-root data --image-size 352 --seed 42
+python scripts/run_fourier_ablation.py \
+  --dataset etis \
+  --data-root data \
+  --device cuda \
+  --seed 42 \
+  --epochs 30 \
+  --batch-size 6 \
+  --lr 0.0003
 ```
 
-## Train the proposal
+Use the supplied Kaggle multi-seed script for the complete three-seed ETIS
+ablation.
+
+## Prepare a dataset
 
 ```bash
-python scripts/train_one.py --model proposal_apf_unet --config configs/proposal_apf_unet.yaml --dataset kvasir_seg --data-root data --device auto
+python scripts/prepare_dataset.py \
+  --dataset etis \
+  --data-root data \
+  --image-size 352 \
+  --allow-insecure-download
+
+python scripts/make_splits.py \
+  --dataset etis \
+  --data-root data \
+  --image-size 352 \
+  --seed 42
 ```
 
-## Evaluate
+## Train Fourier U-Net
 
 ```bash
-python scripts/eval_one.py --model proposal_apf_unet --config configs/proposal_apf_unet.yaml --dataset kvasir_seg --data-root data --device auto
+python scripts/train_one.py \
+  --model proposal_fourier_unet \
+  --config configs/fair/proposal_fourier_unet.yaml \
+  --dataset etis \
+  --data-root data \
+  --image-size 352 \
+  --batch-size 6 \
+  --epochs 30 \
+  --lr 0.0003 \
+  --device cuda
 ```
 
-## Run tests
+## Evaluate Fourier U-Net
 
 ```bash
-pytest -q
+python scripts/eval_one.py \
+  --model proposal_fourier_unet \
+  --config configs/fair/proposal_fourier_unet.yaml \
+  --dataset etis \
+  --split test \
+  --data-root data \
+  --image-size 352 \
+  --batch-size 6 \
+  --device cuda
 ```
 
-## ISBI 2012 lightweight EM dataset
+## Run validation tests
 
-The repository additionally supports the 30-slice labeled ISBI 2012 EM training volume without removing ISIC 2018. See [`docs/ISBI2012_GUIDE.md`](docs/ISBI2012_GUIDE.md) for preparation, contiguous splitting, and three-seed benchmark commands.
+```bash
+python -m pytest -q \
+  tests/test_fourier_unet.py \
+  tests/test_fourier_repository_consistency.py \
+  tests/test_pipeline_contracts.py
+```
+
+## Dataset support
+
+The repository supports Kvasir-SEG, CVC-ClinicDB, CVC-ColonDB, CVC-300, ETIS,
+Kvasir-Instrument, HyperKvasir segmented data, ISBI 2012, and the other dataset
+keys defined in `src/datasets/registry.py`.
+
+
+## URF-U-Net comparison
+
+The focused URF ablation compares the full model directly with the stabilized
+Plain Fourier U-Net baseline and five controlled variants:
+
+```bash
+bash run.sh urf-ablation
+```
+
+For the complete three-seed ETIS experiment, use
+`kaggle_urf_ablation_etis_3seeds_cell.txt`. See `URF_UNET_GUIDE.md` for the
+architecture, loss design, configuration keys, and interpretation rules.

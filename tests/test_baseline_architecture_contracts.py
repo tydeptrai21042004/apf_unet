@@ -44,7 +44,7 @@ CONFIG_DIR = PROJECT_ROOT / "configs" / "fair"
 
 def _fast_test_model_cfg(model_name: str, cfg: dict):
     cfg = dict(cfg)
-    if model_name in {"attention_unet", "proposal_apf_unet", "proposal_apf_unet"}:
+    if model_name in {"attention_unet", "proposal_fourier_unet", "proposal_fourier_unet"}:
         cfg["channels"] = [2, 4, 8, 16, 32]
     if model_name == "csca_unet":
         cfg["channels"] = [2, 4, 8, 16, 32, 64]
@@ -78,7 +78,7 @@ MODEL_MODULE_CONTRACTS = {
     "polyp_pvt",
     "hsnet",
     "csca_unet",
-    "proposal_apf_unet",
+    "proposal_fourier_unet",
 ])
 def test_default_config_builds_and_preserves_segmentation_shape(model_name: str):
     with (CONFIG_DIR / f"{model_name}.yaml").open("r", encoding="utf-8") as f:
