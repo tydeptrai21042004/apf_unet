@@ -21,7 +21,7 @@ DEFAULT_MODELS = [
     "cfanet",
     "hsnet",
     "csca_unet",
-    "proposal_apf_unet",
+    "proposal_fourier_unet",
 ]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

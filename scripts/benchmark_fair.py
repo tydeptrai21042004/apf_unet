@@ -20,7 +20,7 @@ MODELS = [
     'caranet',
     'cfanet',
     'hsnet',
-    'proposal_apf_unet',
+    'proposal_fourier_unet',
 ]
 
 

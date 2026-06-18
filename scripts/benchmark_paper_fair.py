@@ -28,7 +28,7 @@ MODELS = [
     "cfanet",
     "hsnet",
     "csca_unet",
-    "proposal_apf_unet",
+    "proposal_fourier_unet",
 ]
 
 

@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MODELS = "unet,attention_unet,unetpp,resunetpp,pranet,acsnet,hardnet_mseg,polyp_pvt,caranet,cfanet,hsnet,proposal_apf_unet"
+DEFAULT_MODELS = "unet,attention_unet,unetpp,resunetpp,pranet,acsnet,hardnet_mseg,polyp_pvt,caranet,cfanet,hsnet,proposal_fourier_unet"
 
 
 

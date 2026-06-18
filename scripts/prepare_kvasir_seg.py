@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare supported binary-segmentation datasets for the APF-U-Net benchmark.
+"""Prepare supported binary-segmentation datasets for the Fourier U-Net benchmark.
 
 Supported input modes:
 1) Existing extracted dataset folder with images/ and masks/
